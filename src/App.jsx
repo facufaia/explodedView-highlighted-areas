@@ -3,18 +3,33 @@ import ImageUploader from "./ImageUploader";
 import ImageMapper from "./ImageMapper";
 import DataUploader from "./DataUploader";
 import * as XLSX from "xlsx";
+import PDFViewer from "./PDFViewer";
 //import axios from "axios"; // Asegúrate de instalar axios: npm install axios
 
 export default function DespieceManager() {
-  const [image, setImage] = useState(null);
   const [areas, setAreas] = useState([]);
   const [repuestos, setRepuestos] = useState([]);
   const [vinculados, setVinculados] = useState([]);
   const [excelData, setExcelData] = useState(null);
   const [headerData, setHeaderData] = useState({ A2: null, B2: null });
+  const [image, setImage] = useState(null);
+  const [pdfFile, setPdfFile] = useState(null);
+  const [pdfData, setPdfData] = useState(null);
 
-  const handleImageUpload = (img) => {
-    setImage(URL.createObjectURL(img));
+  const handleImageUpload = (file) => {
+    if (file.type === "application/pdf") {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPdfData(e.target.result);
+      };
+      reader.readAsDataURL(file);
+      setPdfFile(file);
+      setImage(null);
+    } else {
+      console.log("imagen");
+      setImage(URL.createObjectURL(file));
+      setPdfFile(null);
+    }
   };
 
   const handleAreaAdded = (newArea) => {
@@ -74,66 +89,84 @@ export default function DespieceManager() {
     };
     reader.readAsArrayBuffer(file);
   };
+
   useEffect(() => {
     console.log("HeaderData actualizado:", headerData);
   }, [headerData]);
+
   // const handleProductSelect = (productCode) => {
   //   setSelectedProduct(productCode);
   // };
 
   return (
-    <div className="flex flex-col gap-4 h-screen w-full">
-      <h1 className="text-3xl">Gestor de Despieces</h1>
-      <div className="flex justify-between h-3/4 w-full bg-red-700">
-        {image ? (
-          <ImageMapper
-            imageSrc={image}
-            onAreaAdded={handleAreaAdded}
-            vinculados={vinculados}
-          />
-        ) : (
-          <section className="flex flex-col gap-4 py-6 w-7/12 bg-green-700">
-            <h2 className="text-2xl">Sube una imagen para comenzar a mapear</h2>
-            <ImageUploader onImageUpload={handleImageUpload} />
-          </section>
-        )}
-        {excelData ? (
-          <div className="flex flex-col items-center justify-between gap-4 py-6 w-5/12 bg-fuchsia-700">
-            <div className="flex flex-col gap-6 overflow-y-auto w-full">
-              <h2 className="text-2xl">Repuestos</h2>
-              {headerData && (
-                <h3>
-                  <p>
-                    {headerData.A2 !== null ? headerData.A2 : "No disponible"}{" "}
-                    from{" "}
-                    {headerData.B2 !== null ? headerData.B2 : "No disponible"}
-                  </p>
-                </h3>
-              )}
-              <table>
-                <tbody>
-                  {excelData.map((row, index) => (
-                    <tr key={index}>
-                      {row.map((cell, cellIndex) => (
-                        <td key={cellIndex}>{cell}</td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+    <div className="flex flex-col gap-5 h-screen w-full">
+      <header className="w-full border-b-2 flex justify-between p-4 bg-orange-700">
+        <span className="text-3xl font-semibold">DAEWOO</span>
+        <button className="bg-orange-900 hover:bg-orange-950 rounded-md px-4 py-1 font-semibold">
+          Login
+        </button>
+      </header>
+      <div className="flex flex-col gap-8 h-screen w-full p-4">
+        <h1 className="text-3xl">Exploded View Manager</h1>
+        <div className="flex justify-between gap-6 h-3/4 w-full">
+          {image || pdfFile ? (
+            pdfFile ? (
+              <PDFViewer
+                file={pdfData}
+                onAreaAdded={handleAreaAdded}
+                vinculados={vinculados}
+              />
+            ) : (
+              <ImageMapper
+                imageSrc={image}
+                onAreaAdded={handleAreaAdded}
+                vinculados={vinculados}
+              />
+            )
+          ) : (
+            <section className="flex flex-col gap-6 py-6 w-7/12">
+              <h2 className="text-2xl">Upload an exploded view</h2>
+              <ImageUploader onImageUpload={handleImageUpload} />
+            </section>
+          )}
+          {excelData ? (
+            <div className="flex flex-col items-center justify-between gap-4 py-6 w-5/12 bg-fuchsia-700">
+              <div className="flex flex-col gap-6 overflow-y-auto w-full">
+                <h2 className="text-2xl">Spare Parts</h2>
+                {headerData && (
+                  <h3>
+                    <p>
+                      {headerData.A2 !== null ? headerData.A2 : "No disponible"}{" "}
+                      from{" "}
+                      {headerData.B2 !== null ? headerData.B2 : "No disponible"}
+                    </p>
+                  </h3>
+                )}
+                <table>
+                  <tbody>
+                    {excelData.map((row, index) => (
+                      <tr key={index}>
+                        {row.map((cell, cellIndex) => (
+                          <td key={cellIndex}>{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <button className="bg-red-900 hover:bg-red-950 w-fit px-10 py-1 rounded-md">
+                Save
+              </button>
             </div>
-            <button className="bg-red-900 hover:bg-red-950 w-fit px-10 py-1 rounded-md">
-              Save
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4 py-6 w-5/12 bg-blue-700">
-            <h2 className="text-2xl">
-              Sube los datos relacionados con este despiece
-            </h2>
-            <DataUploader onDataUpload={handleDataUpload} />
-          </div>
-        )}
+          ) : (
+            <div className="flex flex-col gap-6 py-6 w-5/12">
+              <h2 className="text-2xl text-pretty">
+                Upload the spare parts related to this exploded view
+              </h2>
+              <DataUploader onDataUpload={handleDataUpload} />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ export default function DataUploader({ onDataUpload }) {
   };
 
   return (
-    <div className="bg-yellow-600">
+    <div>
       <input type="file" accept=".xlsx, .xls" onChange={handleFileChange} />
     </div>
   );
